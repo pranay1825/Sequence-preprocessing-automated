@@ -16,7 +16,7 @@ Automated/
 ├── trimming.nf          # fastp only
 ├── fastqc.nf            # FastQC process
 ├── assembly.nf          # MEGAHIT only
-├── metaquast.nf         # assembly + MetaQUAST
+├── metaquast.nf         # assembly + MetaQUAST QC
 └── Docker/              # containerised versions of the individual steps
     ├── trimming_docker.nf
     ├── fastqc_docker.nf
@@ -63,7 +63,5 @@ are not wired into the Nextflow pipeline yet.
 
 ## Known gaps
 
-- `metaquast.nf` and `Docker/metaquast_docker.nf` call an `ASSEMBLY` process that is
-  not declared in those files, so they do not run standalone as written.
 - `main_docker.nf` hardcodes `params.reads` to a single accession
   (`data/SRR12640504*.fastq.gz`) and uses `flat: true`, unlike the other workflows.
