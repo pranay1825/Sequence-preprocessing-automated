@@ -36,6 +36,10 @@ FILES DONE USING GALAXY.txt      # SRA accessions processed on the Galaxy server
 | Assembly | MEGAHIT | `quay.io/biocontainers/megahit:1.2.9--h8b12597_0` |
 | Assembly QC | MetaQUAST | `quay.io/biocontainers/quast:5.3.0--py39pl5321hdbdd923_1` |
 
+Note that `main_docker.nf` pins FastQC at `0.11.9--0` rather than `0.12.1--hdfd78af_0`,
+so the combined pipeline and the standalone `Docker/fastqc_docker.nf` currently run
+different FastQC versions.
+
 ## Running
 
 Paired-end reads are picked up from `data/` as `*_{1,2}.fastq.gz` and results are
@@ -60,10 +64,3 @@ Individual steps run the same way, e.g. `nextflow run Automated/trimming.nf`.
 translation with `transeq`, `hmmscan` against a profile HMM, Prodigal gene prediction,
 and the awk one-liners used to pull out and length-filter the resulting ORFs. These
 are not wired into the Nextflow pipeline yet.
-
-## Known gaps
-
-- `fastqc.nf` and `Docker/fastqc_docker.nf` declare the `FASTQC` process but no
-  `workflow` block, so running either directly makes Nextflow treat the process as
-  the entry point and ask for `--sample_id` on the command line. FastQC still runs
-  as part of `main.nf` / `main_docker.nf`.

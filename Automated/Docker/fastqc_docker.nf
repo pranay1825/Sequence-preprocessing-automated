@@ -3,6 +3,15 @@ nextflow.enable.dsl=2
 params.reads = "data/*_{1,2}.fastq.gz"
 params.outdir = "results"
 
+workflow {
+
+    reads_ch = Channel
+        .fromFilePairs(params.reads, flat: true)
+        .ifEmpty { error "No paired-end FASTQ files found!" }
+
+    FASTQC(reads_ch)
+}
+
 process FASTQC {
 
     tag "$sample_id"
