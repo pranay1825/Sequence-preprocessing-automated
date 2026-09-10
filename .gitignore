@@ -1,0 +1,18 @@
+# Nextflow run artifacts
+.nextflow/
+.nextflow.log*
+work/
+results/
+
+# Input data
+data/
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+
+# Assembly / analysis outputs
+*.contigs.fa
+*.faa
+*.fna
+*.gbk

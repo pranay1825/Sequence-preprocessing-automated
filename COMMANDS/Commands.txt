@@ -1,0 +1,162 @@
+1)Megahit command(assembly):
+megahit -1 sample_R1.fastq -2 sample_R2.fastq -o megahit_output
+2)Metaquast(QC):
+metaquast megahit_output/final.contigs.fa -o metaquast_out
+3)Trimmomatic(trimming):
+java -jar trimmomatic-0.39.jar PE input_forward.fq.gz input_reverse.fq.gz output_forward_paired.fq.gz output_forward_unpaired.fq.gz output_reverse_paired.fq.gz output_reverse_unpaired.fq.gz ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:True LEADING:3 TRAILING:3 MINLEN:36
+4) Six-Frame translation:
+transeq -sequence final.contigs.fasta -outseq translated.faa -frame 6
+5)HMM Scan:
+hmmscan --tblout bl_hits.tbl bl_profiles.hmm translated.faa
+6) extract contig IDs from .tbl:
+awk '{print $3}' bl_hits.tbl | sort -u > ids.txt
+8)awk '{print $3, $1}' bl_hits.tbl | sort -u > id_class_map.txt
+9)extract sequences from the translated FASTA:
+awk '
+BEGIN {
+    FS="[ \t]+"
+
+    # load ID list
+    while ((getline < "ids.txt") > 0) {
+        ids[$1] = 1
+    }
+
+    # load ID → class (allow multiple)
+    while ((getline < "id_class_map.txt") > 0) {
+        class_map[$1] = class_map[$1] " " $2
+    }
+
+    i=1
+}
+
+/^>/ {
+    # process previous sequence
+    if (seq_id != "" && seq_id in ids) {
+        split(class_map[seq_id], arr, " ")
+
+        for (j in arr) {
+            if (arr[j] != "") {
+                printf(">seq%d_%s_%s\n", i, seq_id, arr[j])
+                printf "%s", seq
+                i++
+            }
+        }
+    }
+
+    # reset
+    seq=""
+    seq_id=""
+
+    # extract ID
+    if (match($0, /k[0-9]+_[0-9]+_[0-9]+/)) {
+        seq_id = substr($0, RSTART, RLENGTH)
+    }
+
+    next
+}
+
+{
+    seq = seq $0 "\n"
+}
+
+END {
+    if (seq_id != "" && seq_id in ids) {
+        split(class_map[seq_id], arr, " ")
+
+        for (j in arr) {
+            if (arr[j] != "") {
+                printf(">seq%d_%s_%s\n", i, seq_id, arr[j])
+                printf "%s", seq
+                i++
+            }
+        }
+    }
+}
+' translated.faa > screened_sequences.txt
+
+10) Prodigal: prodigal -i contigs.fa \
+-a proteins.faa \
+-d genes.fna \
+-o genes.gbk \
+-f gbk \
+-p meta
+
+11) To filter
+seqkit fx2tab -nl screened_sequences.txt -o length
+
+12) ORF filtering:
+awk '
+BEGIN {
+    RS=">"
+    ORS=""
+    count=0
+}
+
+NR>1 {
+    header=$1
+
+    sub(/[^\n]*\n/,"")
+
+    seq=$0
+    gsub(/\n/,"",seq)
+
+    if(length(seq) <= 20) {
+        print ">" header "\n" seq "\n"
+        count++
+    }
+}
+
+END {
+    print "\nTotal sequences <=20 aa: " count "\n" > "/dev/stderr"
+}
+' proteins.faa > short_proteins.faa
+
+13) orf filtering-2.0
+awk '
+BEGIN {
+    RS=">"
+    ORS=""
+    count=0
+}
+
+NR>1 {
+    header=$1
+
+    sub(/[^\n]*\n/,"")
+
+    seq=$0
+    gsub(/\n/,"",seq)
+
+    if(length(seq) <= 8) {
+        print ">" header "\n" seq "\n"
+        count++
+    }
+}
+
+END {
+    print "\nTotal sequences <=8 aa: " count "\n" > "/dev/stderr"
+}
+' proteins.faa > shortest_proteins.faa
+
+14) Filter for smallest seq in orfs:
+awk '
+BEGIN {RS=">"; FS="\n"; min=1e9}
+
+NR>1 {
+    seq=""
+    for(i=2;i<=NF;i++) seq=seq $i
+
+    len=length(seq)
+
+    if(len < min) {
+        min=len
+        id=$1
+    }
+}
+
+END {
+    split(id,a," ")
+    print "Smallest sequence:", a[1]
+    print "Length:", min
+}
+' proteins.faa
