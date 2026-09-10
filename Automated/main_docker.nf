@@ -1,12 +1,12 @@
 nextflow.enable.dsl=2
 
-params.reads = "data/SRR12640504*.fastq.gz"
+params.reads = "data/*_{1,2}.fastq.gz"
 params.outdir = "results"
 
 workflow {
 
     reads_ch = Channel
-        .fromFilePairs(params.reads, flat: true)
+        .fromFilePairs(params.reads)
         .ifEmpty { error "No paired-end FASTQ files found!" }
 
     trimmed_ch = TRIM(reads_ch)

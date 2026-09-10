@@ -63,5 +63,7 @@ are not wired into the Nextflow pipeline yet.
 
 ## Known gaps
 
-- `main_docker.nf` hardcodes `params.reads` to a single accession
-  (`data/SRR12640504*.fastq.gz`) and uses `flat: true`, unlike the other workflows.
+- `fastqc.nf` and `Docker/fastqc_docker.nf` declare the `FASTQC` process but no
+  `workflow` block, so running either directly makes Nextflow treat the process as
+  the entry point and ask for `--sample_id` on the command line. FastQC still runs
+  as part of `main.nf` / `main_docker.nf`.
